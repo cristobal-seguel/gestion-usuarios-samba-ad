@@ -1,0 +1,22 @@
+{
+  "name": "samba-ad-users-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "API REST para administrar usuarios de Samba Active Directory por LDAP",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "check": "node --check src/server.js && node --check src/app.js && node --check src/ldap/userRepository.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "ldapts": "^8.0.10",
+    "zod": "^3.24.2"
+  }
+}
