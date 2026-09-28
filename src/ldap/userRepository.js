@@ -117,7 +117,7 @@ export class UserRepository {
       const dn = `CN=${escapeRdn(data.username)},${config.LDAP_USERS_OU}`;
       const entry = {
         objectClass: ['top', 'person', 'organizationalPerson', 'user'],
-        cn: data.displayName,
+        cn: data.username,
         sAMAccountName: data.username,
         userPrincipalName: data.userPrincipalName,
         givenName: data.givenName,

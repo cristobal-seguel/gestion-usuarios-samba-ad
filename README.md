@@ -17,6 +17,17 @@ cp .env.example .env
 
 Edita `.env` con el FQDN, DN de la cuenta de servicio, DN de dominio y OU real. Si el certificado LDAPS está firmado por una CA privada, configura `LDAP_CA_CERT_PATH` con la ruta al certificado de esa CA. No desactives la validación TLS en producción.
 
+Si una solicitud devuelve `unable to verify the first certificate`, el proceso Node no confía en la CA que firmó el certificado LDAPS o no puede leer el archivo configurado. Copia el certificado público de la CA (`ca.pem`) desde el controlador al servidor Node, configura `LDAP_CA_CERT_PATH` con su ruta absoluta real y reinicia el proceso para que vuelva a cargar `.env`. No copies la clave privada del controlador (`key.pem`). En el servidor Node puedes comprobar la cadena con:
+
+```bash
+openssl s_client -connect dc1.example.com:636 \\
+  -servername dc1.example.com \\
+  -CAfile /ruta/real/ca.pem \\
+  -verify_return_error
+```
+
+La verificación debe terminar con `Verify return code: 0 (ok)`. Sustituye el nombre y la ruta por los de tu entorno. El nombre usado en `LDAP_URL` también debe corresponder al certificado del controlador.
+
 ```bash
 npm run dev
 ```
