@@ -7,10 +7,12 @@ const USER_ATTRIBUTES = [
   'userAccountControl', 'objectGUID'
 ];
 
+// LDAP puede entregar un atributo como valor único o como arreglo.
 function first(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+// Expone solo los campos permitidos por la API; nunca incluye atributos de contraseña.
 function mapEntry(entry) {
   return {
     id: Buffer.isBuffer(entry.objectGUID) ? entry.objectGUID.toString('hex') : String(first(entry.objectGUID) ?? ''),
@@ -25,22 +27,27 @@ function mapEntry(entry) {
   };
 }
 
+// Escapa caracteres reservados de un RDN antes de construir el DN del usuario.
 function escapeRdn(value) {
   return value.replace(/([,\\#+<>;"=])/g, '\\$1').replace(/^ | $/g, (space) => `\\${space}`);
 }
 
+// Samba AD espera unicodePwd como una cadena entre comillas codificada en UTF-16LE.
 function passwordValue(password) {
   return Buffer.from(`"${password}"`, 'utf16le');
 }
 
+// Escapa caracteres especiales de RFC 4515 para impedir inyección en filtros LDAP.
 function escapeFilterValue(value) {
   return value.replace(/[\0()*\\]/g, (character) => `\\${character.charCodeAt(0).toString(16).padStart(2, '0')}`);
 }
 
+// Limita la búsqueda a objetos de usuario dentro de la OU configurada.
 function userFilter(username) {
   return `(&(objectCategory=person)(objectClass=user)(sAMAccountName=${escapeFilterValue(username)}))`;
 }
 
+// Traduce únicamente los campos editables de la API a cambios LDAP.
 function toChanges(data) {
   const fields = {
     givenName: 'givenName',
@@ -59,6 +66,7 @@ function toChanges(data) {
 }
 
 export class UserRepository {
+  // Busca una cuenta por nombre y conserva su DN internamente para modificaciones.
   async findByUsername(username) {
     return withLdapClient(async (client) => {
       const { searchEntries } = await client.search(config.LDAP_USERS_OU, {
@@ -72,6 +80,7 @@ export class UserRepository {
     });
   }
 
+  // Recorre páginas LDAP y conserva solo offset + limit + un registro para hasMore.
   async list({ offset, limit }) {
     return withLdapClient(async (client) => {
       const users = [];
@@ -99,6 +108,7 @@ export class UserRepository {
     });
   }
 
+  // Crea la cuenta y luego establece la contraseña por LDAPS según el requisito de AD.
   async create(data) {
     return withLdapClient(async (client) => {
       if (new URL(config.LDAP_URL).protocol !== 'ldaps:') {
@@ -130,6 +140,7 @@ export class UserRepository {
     });
   }
 
+  // Actualiza atributos, contraseña o el bit de cuenta deshabilitada sin alterar otros bits.
   async update(username, data) {
     const user = await this.findByUsername(username);
     if (!user) return null;
@@ -156,6 +167,7 @@ export class UserRepository {
     return this.findByUsername(username);
   }
 
+  // Elimina la cuenta encontrada; devuelve false si no existía.
   async remove(username) {
     const user = await this.findByUsername(username);
     if (!user) return false;

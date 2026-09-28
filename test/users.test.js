@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
 
+// La suite usa configuración de prueba y no necesita conectarse a un Samba AD real.
 process.env.LDAP_URL = 'ldaps://localhost:636';
 process.env.LDAP_BIND_DN = 'CN=test,DC=example,DC=com';
 process.env.LDAP_BIND_PASSWORD = 'test-only';
@@ -9,6 +10,7 @@ process.env.LDAP_BASE_DN = 'DC=example,DC=com';
 process.env.LDAP_USERS_OU = 'OU=Users,DC=example,DC=com';
 
 const { createApp } = await import('../src/app.js');
+// Objeto representativo que devuelve el servicio simulado.
 const user = {
   id: '1234', username: 'ana', givenName: 'Ana', surname: 'Perez',
   displayName: 'Ana Perez', email: 'ana@example.com', department: '', title: '', enabled: true
@@ -19,6 +21,7 @@ let baseUrl;
 let calls;
 
 before(async () => {
+  // El doble registra argumentos para verificar el contrato de las rutas.
   const userService = {
     async list(options) {
       calls.list = options;
@@ -55,6 +58,7 @@ beforeEach(() => {
 });
 
 function apiFetch(path, options = {}) {
+  // Añade el token de prueba a las solicitudes protegidas.
   const headers = new Headers(options.headers);
   headers.set('authorization', `Bearer ${process.env.API_TOKEN}`);
   return fetch(`${baseUrl}${path}`, { ...options, headers });

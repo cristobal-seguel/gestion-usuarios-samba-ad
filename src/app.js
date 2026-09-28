@@ -10,6 +10,8 @@ export function createApp({ userService = new UserService() } = {}) {
   app.disable('x-powered-by');
   app.use(helmet());
   app.use(express.json({ limit: '32kb' }));
+
+  // Permite solicitudes del origen configurado y responde los preflight del navegador.
   app.use((req, res, next) => {
     const origin = config.CORS_ORIGIN;
     if (origin === '*' || req.headers.origin === origin) {
@@ -21,6 +23,8 @@ export function createApp({ userService = new UserService() } = {}) {
     if (req.method === 'OPTIONS') return res.sendStatus(204);
     return next();
   });
+
+  // Limita el volumen de solicitudes y exige el token compartido en todas las rutas /api.
   app.use('/api', rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false }));
   app.use('/api', (req, res, next) => {
     const authorization = req.get('authorization') ?? '';
@@ -30,9 +34,13 @@ export function createApp({ userService = new UserService() } = {}) {
     }
     return next();
   });
+
+  // Health queda público para que los sistemas de supervisión comprueben el proceso.
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
   app.use('/api/users', createUserRouter(userService));
   app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
+
+  // Oculta detalles internos al cliente y registra solo el mensaje del error en el servidor.
   app.use((error, _req, res, _next) => {
     const status = error.status ?? (error.code === 'LDAPS_REQUIRED' ? 400 : 500);
     if (status >= 500) console.error('Error de API:', error.message);

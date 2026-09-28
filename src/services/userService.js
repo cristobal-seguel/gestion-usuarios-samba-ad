@@ -1,6 +1,7 @@
 import { UserRepository } from '../ldap/userRepository.js';
 
 export class UserService {
+  // El repositorio se puede sustituir por un doble en las pruebas HTTP.
   constructor(repository = new UserRepository()) {
     this.repository = repository;
   }
@@ -13,6 +14,7 @@ export class UserService {
     return this.repository.findByUsername(username);
   }
 
+  // Evita crear dos cuentas con el mismo sAMAccountName.
   async create(data) {
     if (await this.repository.findByUsername(data.username)) {
       throw Object.assign(new Error('El usuario ya existe'), { status: 409, code: 'USER_EXISTS' });

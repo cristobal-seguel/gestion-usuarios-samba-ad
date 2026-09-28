@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 
+// Acepta nombres de cuenta simples y acota los datos recibidos desde HTTP.
 const usernameSchema = z.string().min(1).max(20).regex(/^[A-Za-z0-9._-]+$/);
 const userFields = {
   username: usernameSchema,
@@ -14,6 +15,7 @@ const userFields = {
   title: z.string().max(64).optional(),
   enabled: z.boolean().default(true)
 };
+// El alta exige los atributos base; PATCH solo permite cambiar campos explícitos.
 const createSchema = z.object(userFields).strict();
 const updateSchema = z.object({
   password: userFields.password.optional(),
@@ -33,6 +35,7 @@ const paginationSchema = z.object({
 export function createUserRouter(userService) {
   const router = Router();
 
+  // GET /: limita la consulta al tramo solicitado y reporta si hay más resultados.
   router.get('/', async (req, res) => {
     const query = paginationSchema.safeParse(req.query);
     if (!query.success) return res.status(400).json({ error: 'Parametros de paginacion invalidos' });
@@ -40,6 +43,7 @@ export function createUserRouter(userService) {
     return res.json({ data: result.users, pagination: { ...query.data, hasMore: result.hasMore } });
   });
 
+  // POST /: valida el alta antes de delegar las reglas de negocio al servicio.
   router.post('/', async (req, res) => {
     const body = createSchema.safeParse(req.body);
     if (!body.success) return res.status(400).json({ error: 'Datos de usuario invalidos', details: body.error.issues });
@@ -47,6 +51,7 @@ export function createUserRouter(userService) {
     return res.status(201).json({ data: user });
   });
 
+  // GET /:username: busca por sAMAccountName y distingue un usuario inexistente.
   router.get('/:username', async (req, res) => {
     const username = usernameSchema.safeParse(req.params.username);
     if (!username.success) return res.status(400).json({ error: 'Nombre de usuario invalido' });
@@ -55,6 +60,7 @@ export function createUserRouter(userService) {
     return res.json({ data: user });
   });
 
+  // PATCH /:username: modifica solo los atributos incluidos en la solicitud.
   router.patch('/:username', async (req, res) => {
     const username = usernameSchema.safeParse(req.params.username);
     const body = updateSchema.safeParse(req.body);
@@ -65,6 +71,7 @@ export function createUserRouter(userService) {
     return res.json({ data: user });
   });
 
+  // DELETE /:username: responde sin cuerpo cuando el borrado se completa.
   router.delete('/:username', async (req, res) => {
     const username = usernameSchema.safeParse(req.params.username);
     if (!username.success) return res.status(400).json({ error: 'Nombre de usuario invalido' });

@@ -1,6 +1,7 @@
 import { Client } from 'ldapts';
 import { config } from '../config.js';
 
+// Construye un cliente con LDAPS, los límites de tiempo y la CA opcional configurada.
 export function createLdapClient() {
   return new Client({
     url: config.LDAP_URL,
@@ -10,6 +11,7 @@ export function createLdapClient() {
   });
 }
 
+// Cada operación usa una conexión autenticada y la libera incluso si ocurre un error.
 export async function withLdapClient(operation) {
   const client = createLdapClient();
   try {
